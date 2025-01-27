@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Halványuló Szürke Sáv</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f9f9f9;
+      }
+      canvas {
+        display: block;
+        margin-top: 20px;
+      }
+      .controls {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .controls input {
+        margin: 5px;
+        padding: 5px;
+        font-size: 16px;
+      }
+      .controls button {
+        margin-top: 10px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        border: none;
+        background-color: #36a2eb;
+        color: white;
+        border-radius: 5px;
+      }
+      .controls button:hover {
+        background-color: #4bc0c0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="controls">
+      <label>
+        Érték (Value):
+        <input
+          type="number"
+          id="valueInput"
+          placeholder="Adja meg az értéket"
+        />
+      </label>
+      <label>
+        Címke (Label):
+        <input type="text" id="labelInput" placeholder="Adja meg a címkét" />
+      </label>
+      <button id="updateButton">Frissítés</button>
+      <button id="downloadButton">Kép letöltése</button>
+    </div>
+    <canvas id="gaugeCanvas"></canvas>
+    <script>
+      const canvas = document.getElementById("gaugeCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // Dinamikus méret
+      canvas.width = 600;
+      canvas.height = 400;
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height - 100;
+      const radius = 150;
+
+      // Értékek a skálán
+      const values = [300, 580, 640, 700, 760, 850];
+
+      const drawBackgroundArc = () => {
+        const startAngle = Math.PI - 0.2;
+        const endAngle = 2 * Math.PI + 0.2;
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius - 15, startAngle, endAngle);
+        ctx.lineWidth = 45;
+        ctx.lineCap = "butt";
+        ctx.strokeStyle = "rgba(240,240,240,1)";
+        ctx.stroke();
+      };
+
+      const drawScale = () => {
+        const startAngle = Math.PI;
+        const endAngle = 2 * Math.PI;
+
+        ctx.lineWidth = 15;
+        ctx.lineCap = "round";
+
+        const gradient = ctx.createLinearGradient(
+          centerX - radius,
+          0,
+          centerX + radius,
+          0,
+        );
+        gradient.addColorStop(0, "#8b0000");
+        gradient.addColorStop(0.2, "#9400d3");
+        gradient.addColorStop(0.5, "#0000ff");
+        gradient.addColorStop(1, "#00ff00");
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.strokeStyle = gradient;
+        ctx.stroke();
+
+        values.forEach((value, i) => {
+          const angle =
+            startAngle + (i / (values.length - 1)) * (endAngle - startAngle);
+
+          const textX = centerX + Math.cos(angle) * (radius + 20);
+          const textY = centerY + Math.sin(angle) * (radius + 20);
+
+          const gradientX = Math.floor(centerX + Math.cos(angle) * radius);
+          const gradientY = Math.floor(centerY + Math.sin(angle) * radius);
+          const pixel = ctx.getImageData(gradientX, gradientY, 1, 1).data;
+          const gradientColor = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+
+          ctx.font = "14px Arial";
+          ctx.fillStyle = gradientColor;
+          ctx.textAlign = "center";
+          ctx.fillText(value, textX, textY);
+
+          const innerX = centerX + Math.cos(angle) * (radius - 5);
+          const innerY = centerY + Math.sin(angle) * (radius - 5);
+          const outerX = centerX + Math.cos(angle) * (radius + 5);
+          const outerY = centerY + Math.sin(angle) * (radius + 5);
+
+          ctx.beginPath();
+          ctx.moveTo(innerX, innerY);
+          ctx.lineTo(outerX, outerY);
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        });
+      };
+
+      const drawCenterCircle = (value, label) => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius - 70, 0, 2 * Math.PI);
+        ctx.fillStyle = "#f0f0f0";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 4;
+        ctx.fill();
+        ctx.restore();
+
+        // Gradient szín lekérése az értékhez
+        const angle =
+          Math.PI +
+          ((value - values[0]) / (values[values.length - 1] - values[0])) *
+            Math.PI;
+
+        const gradientX = Math.floor(centerX + Math.cos(angle) * radius);
+        const gradientY = Math.floor(centerY + Math.sin(angle) * radius);
+        const pixel = ctx.getImageData(gradientX, gradientY, 1, 1).data;
+        const gradientColor = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+
+        // Szöveg kirajzolása a gradient színnel
+        ctx.font = "bold 40px Arial";
+        ctx.fillStyle = gradientColor;
+        ctx.textAlign = "center";
+        ctx.fillText(value, centerX, centerY - 10);
+
+        ctx.font = "20px Arial";
+        ctx.fillStyle = gradientColor;
+        ctx.fillText(label, centerX, centerY + 20);
+      };
+
+      const drawNeedle = (value) => {
+        const startAngle = Math.PI;
+        const endAngle = 2 * Math.PI;
+
+        const index = values.findIndex((v) => v >= value);
+        const lowerValue = index > 0 ? values[index - 1] : values[0];
+        const upperValue = values[index] || values[values.length - 1];
+
+        const rangeFraction =
+          (value - lowerValue) / (upperValue - lowerValue || 1);
+        const angle =
+          startAngle +
+          (((index > 0 ? index - 1 : 0) + rangeFraction) /
+            (values.length - 1)) *
+            (endAngle - startAngle);
+
+        const needleLength = radius + 10;
+        const needleWidth = 10;
+
+        const needleTipX = centerX + Math.cos(angle) * needleLength;
+        const needleTipY = centerY + Math.sin(angle) * needleLength;
+
+        const baseLeftX = centerX + Math.cos(angle - Math.PI / 2) * needleWidth;
+        const baseLeftY = centerY + Math.sin(angle - Math.PI / 2) * needleWidth;
+
+        const baseRightX =
+          centerX + Math.cos(angle + Math.PI / 2) * needleWidth;
+        const baseRightY =
+          centerY + Math.sin(angle + Math.PI / 2) * needleWidth;
+
+        ctx.beginPath();
+        ctx.moveTo(needleTipX, needleTipY);
+        ctx.lineTo(baseLeftX, baseLeftY);
+        ctx.lineTo(baseRightX, baseRightY);
+        ctx.closePath();
+
+        ctx.fillStyle = "#000";
+        ctx.fill();
+      };
+
+      const drawGauge = (value, label) => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBackgroundArc();
+        drawScale();
+        drawNeedle(value);
+        drawCenterCircle(value, label);
+      };
+
+      document.getElementById("updateButton").addEventListener("click", () => {
+        const value =
+          parseInt(document.getElementById("valueInput").value) || 0;
+        const label = document.getElementById("labelInput").value || "Default";
+        drawGauge(value, label);
+      });
+
+      document
+        .getElementById("downloadButton")
+        .addEventListener("click", () => {
+          const link = document.createElement("a");
+          link.download = "gauge.jpg"; // JPG kiterjesztés
+          link.href = canvas.toDataURL("image/jpeg"); // JPG formátum
+          link.click();
+        });
+
+      drawGauge(580, "Good");
+    </script>
+  </body>
+</html>
