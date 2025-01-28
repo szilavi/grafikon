@@ -76,7 +76,8 @@
       const radius = 150;
 
       // Értékek a skálán
-      const values = [300, 580, 640, 700, 760, 850];
+      //const values = [300, 580, 640, 700, 760, 850];
+      const values = [1, 30, 60, 90, 120];
 
       const drawBackgroundArc = () => {
         const startAngle = Math.PI - 0.2;
@@ -237,12 +238,12 @@
         .getElementById("downloadButton")
         .addEventListener("click", () => {
           const link = document.createElement("a");
-          link.download = "gauge.jpg"; // JPG kiterjesztés
-          link.href = canvas.toDataURL("image/jpeg"); // JPG formátum
+          link.download = "gauge.png"; // JPG kiterjesztés
+          link.href = canvas.toDataURL("image/png"); // JPG formátum
           link.click();
         });
 
-      drawGauge(580, "Good");
+      drawGauge(60, "Good");
     </script>
   </body>
 </html>
