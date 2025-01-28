@@ -229,7 +229,7 @@
 
       document.getElementById("updateButton").addEventListener("click", () => {
         const value =
-          parseInt(document.getElementById("valueInput").value) || 0;
+          parseFloat(document.getElementById("valueInput").value) || 0;
         const label = document.getElementById("labelInput").value || "Default";
         drawGauge(value, label);
       });
